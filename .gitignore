@@ -26,3 +26,5 @@ desktop.ini
 .env.*
 
 database/church.sql
+
+includes/db_config.php
