@@ -1,0 +1,28 @@
+# =====================================================
+# Church Member Management System - Git Ignore
+# =====================================================
+
+# Member-uploaded photos
+uploads/*
+
+# Keep the uploads folder itself
+!uploads/.gitkeep
+
+# Windows files
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Environment / secret configuration files
+.env
+.env.*
+
+database/church.sql

@@ -1,0 +1,12 @@
+# Disable directory listing
+Options -Indexes
+
+# Block direct access to SQL/database files
+<FilesMatch "\.(sql|sql.gz|sqlite|sqlite3)$">
+    Require all denied
+</FilesMatch>
+
+# Protect the .htaccess file itself
+<Files ".htaccess">
+    Require all denied
+</Files>
