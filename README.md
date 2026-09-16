@@ -106,7 +106,7 @@ Steps
 
 2\. Copy the project folder into:
 
-&#x20;  
+&#x20;
 
 &#x20;  "C:\\xampp\\htdocs\\"
 
@@ -118,7 +118,7 @@ Steps
 
 4\. Create a MySQL database named:
 
-&#x20;  
+&#x20;
 
 &#x20;  "church\_management"
 
@@ -130,7 +130,7 @@ Steps
 
 6\. Open the application in your browser:
 
-&#x20;  
+&#x20;
 
 &#x20;  "http://localhost/ChurchManagement/"
 
@@ -191,4 +191,52 @@ B.Tech – Information Technology
 
 
 Vignan Institute of Information Technology, Visakhapatnam
+
+
+
+
+
+\## 📸 Project Screenshots
+
+
+
+\### Login Page
+
+!\[Login Page](screenshots/login.png)
+
+
+
+\### Dashboard
+
+!\[Dashboard](screenshots/dashboard.png)
+
+
+
+\### Members Page
+
+!\[Members Page](screenshots/members.png)
+
+
+
+\### Add Member Page
+
+!\[Add Member Page](screenshots/add-member.png)
+
+
+
+\### Donations Page
+
+!\[Donations Page](screenshots/donations.png)
+
+
+
+\### Events Page
+
+!\[Events Page](screenshots/events.png)
+
+
+
+\### Reports Page
+
+!\[Reports Page](screenshots/reports.png)
 
