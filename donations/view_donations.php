@@ -37,6 +37,21 @@ include '../includes/db.php';
 
 
 /* =====================================================
+   CSRF TOKEN
+===================================================== */
+
+if (
+    !isset($_SESSION['csrf_token']) ||
+    !is_string($_SESSION['csrf_token']) ||
+    strlen($_SESSION['csrf_token']) !== 64
+) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =====================================================
    SEARCH DONATIONS
 ===================================================== */
 
@@ -447,6 +462,23 @@ if (isset($_GET['msg'])) {
 
         </div>';
 
+    } elseif ($_GET['msg'] === "invalid") {
+
+        echo '
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+
+            <i class="bi bi-exclamation-triangle-fill"></i>
+
+            Invalid security token. Please try again.
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+            </button>
+
+        </div>';
+
     } elseif ($_GET['msg'] === "error") {
 
         echo '
@@ -778,18 +810,13 @@ Edit
 </a>
 
 
-<a
-href="delete_donation.php?id=<?php
-echo urlencode($row['id']);
-?>"
-class="btn btn-danger btn-sm"
-onclick="return confirm('Are you sure you want to delete this donation?')">
-
-<i class="bi bi-trash"></i>
-
-Delete
-
-</a>
+<form method="POST" action="delete_donation.php" style="display:inline-block; margin:0;" onsubmit="return confirm('Are you sure you want to delete this donation?');">
+<input type="hidden" name="id" value="<?php echo htmlspecialchars((string)$row['id'], ENT_QUOTES, 'UTF-8'); ?>">
+<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
+<button type="submit" class="btn btn-danger btn-sm">
+<i class="bi bi-trash"></i> Delete
+</button>
+</form>
 
 
 <a

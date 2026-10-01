@@ -31,7 +31,12 @@ include '../includes/db.php';
    CHECK DONATION ID
 ===================================================== */
 
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+if (
+    !isset($_GET['id']) ||
+    !is_string($_GET['id']) ||
+    !ctype_digit($_GET['id']) ||
+    (int)$_GET['id'] <= 0
+) {
 
     header("Location: view_donations.php");
     exit();
@@ -39,37 +44,52 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 
-$id = (int) $_GET['id'];
+$id = (int)$_GET['id'];
 
 
 /* =====================================================
-   GET DONATION
+   GET DONATION USING PREPARED STATEMENT & LEFT JOIN
 ===================================================== */
 
-$sql = "SELECT * FROM donations WHERE id='$id'";
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT d.*, m.member_id AS member_code, m.fullname AS member_fullname
+     FROM donations d
+     LEFT JOIN members m ON d.member_id = m.id
+     WHERE d.id = ?
+     LIMIT 1"
+);
 
-$result = mysqli_query($conn, $sql);
+if (!$stmt) {
 
-
-if (!$result) {
-
-    die(
-        "Database Error: " .
-        mysqli_error($conn)
-    );
-
-}
-
-
-if (mysqli_num_rows($result) == 0) {
-
-    header("Location: view_donations.php");
+    header("Location: view_donations.php?msg=error");
     exit();
 
 }
 
+mysqli_stmt_bind_param($stmt, "i", $id);
+
+if (!mysqli_stmt_execute($stmt)) {
+
+    mysqli_stmt_close($stmt);
+    header("Location: view_donations.php?msg=error");
+    exit();
+
+}
+
+$result = mysqli_stmt_get_result($stmt);
+
+if (!$result || mysqli_num_rows($result) === 0) {
+
+    mysqli_stmt_close($stmt);
+    header("Location: view_donations.php?msg=notfound");
+    exit();
+
+}
 
 $row = mysqli_fetch_assoc($result);
+
+mysqli_stmt_close($stmt);
 
 
 /* =====================================================
@@ -582,13 +602,20 @@ Member ID
 
 <?php
 
-if (
-    isset($row['member_id']) &&
-    $row['member_id'] != ""
-) {
+if (!empty($row['member_code'])) {
 
     echo htmlspecialchars(
-        $row['member_id']
+        $row['member_code'],
+        ENT_QUOTES,
+        'UTF-8'
+    );
+
+} elseif (!empty($row['member_id'])) {
+
+    echo htmlspecialchars(
+        (string)$row['member_id'],
+        ENT_QUOTES,
+        'UTF-8'
     );
 
 } else {

@@ -49,13 +49,39 @@ if (!$conn) {
 
 
 /* =====================================================
+   REQUEST METHOD CHECK (MUST BE POST)
+===================================================== */
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: view_donations.php");
+    exit();
+}
+
+
+/* =====================================================
+   CSRF TOKEN VALIDATION
+===================================================== */
+
+$submitted_token = $_POST['csrf_token'] ?? '';
+
+if (
+    empty($_SESSION['csrf_token']) ||
+    !is_string($submitted_token) ||
+    !hash_equals($_SESSION['csrf_token'], $submitted_token)
+) {
+    header("Location: view_donations.php?msg=invalid");
+    exit();
+}
+
+
+/* =====================================================
    STRICT ID VALIDATION
 ===================================================== */
 
 if (
-    !isset($_GET['id']) ||
-    !is_string($_GET['id']) ||
-    !ctype_digit($_GET['id'])
+    !isset($_POST['id']) ||
+    !is_string($_POST['id']) ||
+    !ctype_digit($_POST['id'])
 ) {
 
     header("Location: view_donations.php");
@@ -64,7 +90,7 @@ if (
 }
 
 
-$id = (int)$_GET['id'];
+$id = (int)$_POST['id'];
 
 
 /* =====================================================
@@ -183,6 +209,8 @@ mysqli_stmt_close($delete_stmt);
 
 
 if ($affected_rows === 1) {
+
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
     header("Location: view_donations.php?msg=deleted");
     exit();

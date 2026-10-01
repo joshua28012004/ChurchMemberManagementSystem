@@ -32,46 +32,92 @@ include "../includes/db.php";
 ===================================================== */
 
 $today = date("m-d");
+$error_message = "";
 
 
 /* =====================================================
-   TODAY'S BIRTHDAYS
+   TODAY'S BIRTHDAYS (PREPARED STATEMENT)
 ===================================================== */
 
-$today_sql = "SELECT * FROM members
-              WHERE DATE_FORMAT(dob, '%m-%d') = '$today'
-              ORDER BY fullname ASC";
+$today_stmt = mysqli_prepare(
+    $conn,
+    "SELECT * FROM members
+     WHERE dob IS NOT NULL
+       AND dob != ''
+       AND dob != '0000-00-00'
+       AND DATE_FORMAT(dob, '%m-%d') = ?
+     ORDER BY fullname ASC"
+);
 
-$today_result = mysqli_query($conn, $today_sql);
+$today_result = false;
 
-if (!$today_result) {
+if ($today_stmt) {
 
-    die("Today's Birthday Error: " . mysqli_error($conn));
+    mysqli_stmt_bind_param($today_stmt, "s", $today);
+
+    if (mysqli_stmt_execute($today_stmt)) {
+
+        $today_result = mysqli_stmt_get_result($today_stmt);
+
+    } else {
+
+        $error_message = "Unable to load birthday records at this time.";
+
+    }
+
+    mysqli_stmt_close($today_stmt);
+
+} else {
+
+    $error_message = "Unable to load birthday records at this time.";
 
 }
 
 
 /* =====================================================
-   UPCOMING BIRTHDAYS
+   UPCOMING BIRTHDAYS (PREPARED STATEMENT)
 ===================================================== */
 
-$upcoming_sql = "SELECT *,
-                 DATE_FORMAT(dob, '%m-%d') AS birthday
-                 FROM members
-                 WHERE DATE_FORMAT(dob, '%m-%d') != '$today'
-                 ORDER BY
-                 CASE
-                    WHEN DATE_FORMAT(dob, '%m-%d') >= '$today'
-                    THEN DATE_FORMAT(dob, '%m-%d')
-                    ELSE CONCAT('99-', DATE_FORMAT(dob, '%d'))
-                 END
-                 LIMIT 10";
+$upcoming_stmt = mysqli_prepare(
+    $conn,
+    "SELECT *,
+            DATE_FORMAT(dob, '%m-%d') AS birthday
+     FROM members
+     WHERE dob IS NOT NULL
+       AND dob != ''
+       AND dob != '0000-00-00'
+       AND DATE_FORMAT(dob, '%m-%d') != ?
+     ORDER BY
+     CASE
+        WHEN DATE_FORMAT(dob, '%m-%d') >= ?
+        THEN DATE_FORMAT(dob, '%m-%d')
+        ELSE CONCAT('99-', DATE_FORMAT(dob, '%m-%d'))
+     END ASC,
+     fullname ASC
+     LIMIT 10"
+);
 
-$upcoming_result = mysqli_query($conn, $upcoming_sql);
+$upcoming_result = false;
 
-if (!$upcoming_result) {
+if ($upcoming_stmt) {
 
-    die("Upcoming Birthday Error: " . mysqli_error($conn));
+    mysqli_stmt_bind_param($upcoming_stmt, "ss", $today, $today);
+
+    if (mysqli_stmt_execute($upcoming_stmt)) {
+
+        $upcoming_result = mysqli_stmt_get_result($upcoming_stmt);
+
+    } else {
+
+        $error_message = "Unable to load birthday records at this time.";
+
+    }
+
+    mysqli_stmt_close($upcoming_stmt);
+
+} else {
+
+    $error_message = "Unable to load birthday records at this time.";
 
 }
 
@@ -165,6 +211,25 @@ include "../includes/sidebar.php";
 </h2>
 
 
+<?php if (!empty($error_message)): ?>
+
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+
+    <i class="bi bi-exclamation-triangle-fill"></i>
+
+    <?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?>
+
+    <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert">
+    </button>
+
+</div>
+
+<?php endif; ?>
+
+
 <!-- =====================================================
      TODAY'S BIRTHDAYS
 ===================================================== -->
@@ -188,7 +253,7 @@ include "../includes/sidebar.php";
 
 <?php
 
-if (mysqli_num_rows($today_result) > 0) {
+if ($today_result && mysqli_num_rows($today_result) > 0) {
 
     while ($member = mysqli_fetch_assoc($today_result)) {
 
@@ -360,7 +425,7 @@ echo htmlspecialchars(
 
 <?php
 
-if (mysqli_num_rows($upcoming_result) > 0) {
+if ($upcoming_result && mysqli_num_rows($upcoming_result) > 0) {
 
     while ($member =
            mysqli_fetch_assoc($upcoming_result)) {

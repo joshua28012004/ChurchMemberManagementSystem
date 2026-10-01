@@ -783,21 +783,13 @@ class="btn btn-warning btn-sm action-btn">
 
 <!-- DELETE -->
 
-<a
-href="delete_event.php?id=<?php
-echo urlencode((string)$row['id']);
-?>&token=<?php
-echo urlencode($csrf_token);
-?>"
-class="btn btn-danger btn-sm action-btn"
-
-onclick="return confirm(
-'Are you sure you want to delete this event?'
-);">
-
+<form method="POST" action="delete_event.php" style="display:inline-block; margin:0;" onsubmit="return confirm('Are you sure you want to delete this event?');">
+<input type="hidden" name="id" value="<?php echo htmlspecialchars((string)$row['id'], ENT_QUOTES, 'UTF-8'); ?>">
+<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
+<button type="submit" class="btn btn-danger btn-sm action-btn">
 🗑️ Delete
-
-</a>
+</button>
+</form>
 
 
 </td>

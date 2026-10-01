@@ -33,6 +33,21 @@ include '../includes/db.php';
 
 
 /* =====================================================
+   CSRF TOKEN
+===================================================== */
+
+if (
+    !isset($_SESSION['csrf_token']) ||
+    !is_string($_SESSION['csrf_token']) ||
+    strlen($_SESSION['csrf_token']) !== 64
+) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =====================================================
    CHECK MEMBER ID
 ===================================================== */
 
@@ -107,6 +122,19 @@ if (
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
     isset($_POST['update'])
 ) {
+
+    $submitted_token = $_POST['csrf_token'] ?? '';
+
+    if (
+        empty($_SESSION['csrf_token']) ||
+        !is_string($submitted_token) ||
+        !hash_equals($_SESSION['csrf_token'], $submitted_token)
+    ) {
+
+        $message = 'Invalid security token. Please try again.';
+        $message_type = 'danger';
+
+    } else {
 
     $member_id = trim($_POST['member_id'] ?? '');
     $fullname = trim($_POST['fullname'] ?? '');
@@ -630,6 +658,8 @@ if (
                 }
 
 
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
                 header(
                     'Location: view_members.php?msg=updated'
                 );
@@ -668,6 +698,7 @@ if (
                 @unlink($new_path);
             }
         }
+    }
     }
 }
 
@@ -889,6 +920,11 @@ enctype="multipart/form-data"
 id="editMemberForm"
 onsubmit="return validatePhotoBeforeSubmit();">
 
+
+<input
+type="hidden"
+name="csrf_token"
+value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
 
 <input
 type="hidden"

@@ -61,13 +61,41 @@ if (
 
 
 /* =====================================================
+   REQUEST METHOD CHECK (MUST BE POST)
+===================================================== */
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: view_events.php");
+    exit();
+}
+
+
+/* =====================================================
+   CSRF VALIDATION
+===================================================== */
+
+$submitted_token = $_POST['csrf_token'] ?? "";
+
+if (
+    empty($_SESSION['csrf_token']) ||
+    !is_string($submitted_token) ||
+    !hash_equals($_SESSION['csrf_token'], $submitted_token)
+) {
+
+    header("Location: view_events.php?msg=invalid");
+    exit();
+
+}
+
+
+/* =====================================================
    CHECK EVENT ID
 ===================================================== */
 
 if (
-    !isset($_GET['id']) ||
-    !is_string($_GET['id']) ||
-    !ctype_digit($_GET['id'])
+    !isset($_POST['id']) ||
+    !is_string($_POST['id']) ||
+    !ctype_digit($_POST['id'])
 ) {
 
     header("Location: view_events.php");
@@ -76,7 +104,7 @@ if (
 }
 
 
-$id = (int)$_GET['id'];
+$id = (int)$_POST['id'];
 
 
 /* =====================================================
@@ -86,24 +114,6 @@ $id = (int)$_GET['id'];
 if ($id <= 0) {
 
     header("Location: view_events.php");
-    exit();
-
-}
-
-
-/* =====================================================
-   CSRF VALIDATION
-===================================================== */
-
-$submitted_token = $_GET['token'] ?? "";
-
-
-if (
-    !is_string($submitted_token) ||
-    !hash_equals($_SESSION['csrf_token'], $submitted_token)
-) {
-
-    header("Location: view_events.php?msg=invalid");
     exit();
 
 }

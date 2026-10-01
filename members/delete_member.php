@@ -37,13 +37,39 @@ include '../includes/db.php';
 
 
 /* =====================================================
+   REQUEST METHOD CHECK (MUST BE POST)
+===================================================== */
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: view_members.php");
+    exit();
+}
+
+
+/* =====================================================
+   CSRF TOKEN VALIDATION
+===================================================== */
+
+$submitted_token = $_POST['csrf_token'] ?? '';
+
+if (
+    empty($_SESSION['csrf_token']) ||
+    !is_string($submitted_token) ||
+    !hash_equals($_SESSION['csrf_token'], $submitted_token)
+) {
+    header("Location: view_members.php?msg=invalid");
+    exit();
+}
+
+
+/* =====================================================
    CHECK MEMBER ID
 ===================================================== */
 
 if (
-    !isset($_GET['id']) ||
-    !ctype_digit((string)$_GET['id']) ||
-    (int)$_GET['id'] <= 0
+    !isset($_POST['id']) ||
+    !ctype_digit((string)$_POST['id']) ||
+    (int)$_POST['id'] <= 0
 ) {
 
     header("Location: view_members.php");
@@ -51,7 +77,8 @@ if (
 
 }
 
-$id = (int)$_GET['id'];
+$id = (int)$_POST['id'];
+
 
 
 /* =====================================================
@@ -210,13 +237,16 @@ if (!empty($photo)) {
 
 
 /* =====================================================
-   REDIRECT
+   REGENERATE CSRF TOKEN & REDIRECT
 ===================================================== */
+
+$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
 header(
     "Location: view_members.php?msg=deleted"
 );
 
 exit();
+
 
 ?>

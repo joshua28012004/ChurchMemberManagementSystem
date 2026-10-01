@@ -33,6 +33,21 @@ if (!isset($_SESSION['admin'])) {
 include '../includes/db.php';
 
 
+/* =====================================================
+   CSRF TOKEN
+===================================================== */
+
+if (
+    !isset($_SESSION['csrf_token']) ||
+    !is_string($_SESSION['csrf_token']) ||
+    strlen($_SESSION['csrf_token']) !== 64
+) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
 $message = "";
 $message_type = "success";
 
@@ -76,6 +91,19 @@ if ($result && mysqli_num_rows($result) > 0) {
 ===================================================== */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['save'])) {
+
+    $submitted_token = $_POST['csrf_token'] ?? '';
+
+    if (
+        empty($_SESSION['csrf_token']) ||
+        !is_string($submitted_token) ||
+        !hash_equals($_SESSION['csrf_token'], $submitted_token)
+    ) {
+
+        $message = "Invalid security token. Please try again.";
+        $message_type = "danger";
+
+    } else {
 
     $member_id = $next_member_id;
 
@@ -416,6 +444,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['save'])) {
 
                     $message_type = "success";
 
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    $csrf_token = $_SESSION['csrf_token'];
+
 
                     /*
                      * Generate next ID for display.
@@ -490,6 +521,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['save'])) {
                 $message_type = "danger";
             }
         }
+    }
     }
 }
 
@@ -576,6 +608,11 @@ body {
 <form
 method="POST"
 enctype="multipart/form-data">
+
+<input
+type="hidden"
+name="csrf_token"
+value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
 
 
 <div class="row">
