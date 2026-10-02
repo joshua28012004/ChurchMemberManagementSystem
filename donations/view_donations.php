@@ -1022,14 +1022,3 @@ window.addEventListener(
 </body>
 
 </html>
-
-
-<?php
-
-/* =====================================================
-   CLOSE PREPARED STATEMENT
-===================================================== */
-
-mysqli_stmt_close($stmt);
-
-?>

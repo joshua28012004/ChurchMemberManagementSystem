@@ -959,15 +959,3 @@ window.addEventListener("pageshow", function(event) {
 </body>
 
 </html>
-
-
-<?php
-
-/*
- * Close the prepared statement after
- * the result has been fully used.
- */
-
-mysqli_stmt_close($stmt);
-
-?>
