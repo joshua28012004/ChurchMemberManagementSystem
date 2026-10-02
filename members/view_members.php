@@ -53,7 +53,7 @@ $csrf_token = $_SESSION['csrf_token'];
 
 
 /* =====================================================
-   SEARCH
+   SEARCH & FILTERS
 ===================================================== */
 
 $search = "";
@@ -71,110 +71,94 @@ if (isset($_GET['search'])) {
 
 }
 
+$gender_filter = "";
+$allowed_genders = ["Male", "Female", "Other"];
+if (isset($_GET['gender']) && in_array($_GET['gender'], $allowed_genders, true)) {
+    $gender_filter = $_GET['gender'];
+}
+
+$marital_filter = "";
+$allowed_marital = ["Single", "Married", "Divorced", "Widowed"];
+if (isset($_GET['marital_status']) && in_array($_GET['marital_status'], $allowed_marital, true)) {
+    $marital_filter = $_GET['marital_status'];
+}
+
 
 /* =====================================================
    GET MEMBERS
 ===================================================== */
 
+$conditions = [];
+$params = [];
+$types = "";
+
 if ($search !== "") {
-
     $search_value = "%" . $search . "%";
+    $conditions[] = "(member_id LIKE ? OR fullname LIKE ? OR phone LIKE ? OR email LIKE ?)";
+    $params[] = $search_value;
+    $params[] = $search_value;
+    $params[] = $search_value;
+    $params[] = $search_value;
+    $types .= "ssss";
+}
 
+if ($gender_filter !== "") {
+    $conditions[] = "gender = ?";
+    $params[] = $gender_filter;
+    $types .= "s";
+}
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT *
-         FROM members
-         WHERE member_id LIKE ?
-            OR fullname LIKE ?
-            OR phone LIKE ?
-            OR email LIKE ?
-         ORDER BY id DESC"
-    );
+if ($marital_filter !== "") {
+    $conditions[] = "marital_status = ?";
+    $params[] = $marital_filter;
+    $types .= "s";
+}
 
+$sql = "SELECT * FROM members";
+if (!empty($conditions)) {
+    $sql .= " WHERE " . implode(" AND ", $conditions);
+}
+$sql .= " ORDER BY id DESC";
 
-    if (!$stmt) {
+$stmt = mysqli_prepare($conn, $sql);
 
-        header("Location: view_members.php?msg=error");
-        exit();
+if (!$stmt) {
 
-    }
-
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ssss",
-        $search_value,
-        $search_value,
-        $search_value,
-        $search_value
-    );
-
-
-    if (!mysqli_stmt_execute($stmt)) {
-
-        mysqli_stmt_close($stmt);
-
-        header("Location: view_members.php?msg=error");
-        exit();
-
-    }
-
-
-    $result = mysqli_stmt_get_result($stmt);
-
-
-    if (!$result) {
-
-        mysqli_stmt_close($stmt);
-
-        header("Location: view_members.php?msg=error");
-        exit();
-
-    }
-
-} else {
-
-
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT *
-         FROM members
-         ORDER BY id DESC"
-    );
-
-
-    if (!$stmt) {
-
-        header("Location: view_members.php?msg=error");
-        exit();
-
-    }
-
-
-    if (!mysqli_stmt_execute($stmt)) {
-
-        mysqli_stmt_close($stmt);
-
-        header("Location: view_members.php?msg=error");
-        exit();
-
-    }
-
-
-    $result = mysqli_stmt_get_result($stmt);
-
-
-    if (!$result) {
-
-        mysqli_stmt_close($stmt);
-
-        header("Location: view_members.php?msg=error");
-        exit();
-
-    }
+    header("Location: view_members.php?msg=error");
+    exit();
 
 }
+
+if (!empty($params)) {
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+}
+
+if (!mysqli_stmt_execute($stmt)) {
+
+    mysqli_stmt_close($stmt);
+
+    header("Location: view_members.php?msg=error");
+    exit();
+
+}
+
+$result = mysqli_stmt_get_result($stmt);
+
+if (!$result) {
+
+    mysqli_stmt_close($stmt);
+
+    header("Location: view_members.php?msg=error");
+    exit();
+
+}
+
+$members_list = [];
+while ($r = mysqli_fetch_assoc($result)) {
+    $members_list[] = $r;
+}
+
+mysqli_stmt_close($stmt);
 
 ?>
 
@@ -424,7 +408,7 @@ if (isset($_GET['msg'])) {
 <form method="GET" class="mb-4">
 
 
-<div class="row g-2">
+<div class="row g-2 mb-2">
 
 
 <div class="col-md-9">
@@ -492,6 +476,43 @@ class="btn btn-success w-100">
 </div>
 
 
+<!-- FILTER ROW (GENDER & MARITAL STATUS) -->
+<div class="row g-2 align-items-center">
+
+<div class="col-md-4">
+<div class="input-group input-group-sm">
+<label class="input-group-text bg-light" for="genderFilter"><i class="bi bi-gender-ambiguous me-1"></i> Gender</label>
+<select name="gender" id="genderFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+<option value="">All Genders</option>
+<option value="Male" <?php if ($gender_filter === 'Male') echo 'selected'; ?>>Male</option>
+<option value="Female" <?php if ($gender_filter === 'Female') echo 'selected'; ?>>Female</option>
+<option value="Other" <?php if ($gender_filter === 'Other') echo 'selected'; ?>>Other</option>
+</select>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="input-group input-group-sm">
+<label class="input-group-text bg-light" for="maritalFilter"><i class="bi bi-heart me-1"></i> Marital Status</label>
+<select name="marital_status" id="maritalFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+<option value="">All Marital Statuses</option>
+<option value="Single" <?php if ($marital_filter === 'Single') echo 'selected'; ?>>Single</option>
+<option value="Married" <?php if ($marital_filter === 'Married') echo 'selected'; ?>>Married</option>
+<option value="Divorced" <?php if ($marital_filter === 'Divorced') echo 'selected'; ?>>Divorced</option>
+<option value="Widowed" <?php if ($marital_filter === 'Widowed') echo 'selected'; ?>>Widowed</option>
+</select>
+</div>
+</div>
+
+<div class="col-md-4 text-md-end">
+<span class="badge bg-secondary py-2 px-3">
+<i class="bi bi-people-fill me-1"></i> Showing: <?php echo count($members_list); ?> Members
+</span>
+</div>
+
+</div>
+
+
 </form>
 
 
@@ -534,10 +555,10 @@ class="btn btn-success w-100">
 
 <?php
 
-if (mysqli_num_rows($result) > 0) {
+if (count($members_list) > 0) {
 
 
-    while ($row = mysqli_fetch_assoc($result)) {
+    foreach ($members_list as $row) {
 
 ?>
 
@@ -892,7 +913,7 @@ Total Members:
 
 <?php
 
-echo mysqli_num_rows($result);
+echo count($members_list);
 
 ?>
 

@@ -216,23 +216,31 @@ MOBILE
 @media (max-width: 768px) {
 
 .sidebar {
-    width: 210px;
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .content {
-    margin-left: 210px;
-
-    padding: 20px;
+    margin-left: 0;
+    padding: 15px 12px;
 }
 
 .sidebar h3 {
     font-size: 19px;
+    margin-bottom: 12px;
+}
+
+.sidebar hr {
+    margin: 8px 0 12px;
 }
 
 .sidebar a {
     font-size: 14px;
-
-    padding: 11px 12px;
+    padding: 9px 12px;
+    margin: 4px 0;
 }
 
 }

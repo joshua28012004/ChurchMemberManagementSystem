@@ -172,6 +172,14 @@ if (
 
         $message = 'Phone number is too long.';
 
+    } elseif ($phone !== '' && !preg_match('/^[0-9+\-\s()]{7,20}$/', $phone)) {
+
+        $message = 'Please enter a valid phone number (digits, spaces, +, -, and parentheses only).';
+
+    } elseif ($phone !== '' && preg_match_all('/[0-9]/', $phone) < 7) {
+
+        $message = 'Phone number must contain at least 7 digits.';
+
     } elseif (strlen($email) > 150) {
 
         $message = 'Email address is too long.';
@@ -1273,6 +1281,14 @@ href="view_members.php"
 class="btn btn-secondary">
 
 ↩️ Back
+
+</a>
+
+<a
+href="../dashboard.php"
+class="btn btn-outline-primary ms-1">
+
+🏠 Dashboard
 
 </a>
 

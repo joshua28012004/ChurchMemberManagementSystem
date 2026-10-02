@@ -156,6 +156,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['save'])) {
         $message = "Phone number is too long.";
         $message_type = "danger";
 
+    } elseif ($phone !== "" && !preg_match('/^[0-9+\-\s()]{7,20}$/', $phone)) {
+
+        $message = "Please enter a valid phone number (digits, spaces, +, -, and parentheses only).";
+        $message_type = "danger";
+
+    } elseif ($phone !== "" && preg_match_all('/[0-9]/', $phone) < 7) {
+
+        $message = "Phone number must contain at least 7 digits.";
+        $message_type = "danger";
+
     } elseif (strlen($address) > 500) {
 
         $message = "Address is too long.";
@@ -835,6 +845,15 @@ href="view_members.php"
 class="btn btn-success">
 
 📋 View Members
+
+</a>
+
+
+<a
+href="../dashboard.php"
+class="btn btn-outline-primary ms-1">
+
+🏠 Dashboard
 
 </a>
 

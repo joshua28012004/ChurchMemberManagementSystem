@@ -167,20 +167,28 @@ $birthday_stmt = mysqli_prepare(
     "SELECT COUNT(*) AS total
      FROM members
      WHERE dob IS NOT NULL
-     AND STR_TO_DATE(
-         CONCAT(
-             YEAR(CURDATE()) +
-             (
-                 DATE_FORMAT(dob, '%m-%d')
-                 < DATE_FORMAT(CURDATE(), '%m-%d')
-             ),
-             '-',
-             DATE_FORMAT(dob, '%m-%d')
-         ),
-         '%Y-%m-%d'
-     )
-     BETWEEN CURDATE()
-     AND DATE_ADD(CURDATE(), INTERVAL 1 YEAR)"
+       AND dob > '1900-01-01'
+       AND STR_TO_DATE(
+           CONCAT(
+               YEAR(CURDATE()) + (DATE_FORMAT(dob, '%m-%d') < DATE_FORMAT(CURDATE(), '%m-%d')),
+               '-',
+               IF(
+                   DATE_FORMAT(dob, '%m-%d') = '02-29'
+                   AND NOT (
+                       (YEAR(CURDATE()) + (DATE_FORMAT(dob, '%m-%d') < DATE_FORMAT(CURDATE(), '%m-%d'))) % 4 = 0
+                       AND (
+                           (YEAR(CURDATE()) + (DATE_FORMAT(dob, '%m-%d') < DATE_FORMAT(CURDATE(), '%m-%d'))) % 100 != 0
+                           OR (YEAR(CURDATE()) + (DATE_FORMAT(dob, '%m-%d') < DATE_FORMAT(CURDATE(), '%m-%d'))) % 400 = 0
+                       )
+                   ),
+                   '02-28',
+                   DATE_FORMAT(dob, '%m-%d')
+               )
+           ),
+           '%Y-%m-%d'
+       )
+       BETWEEN CURDATE()
+       AND DATE_ADD(CURDATE(), INTERVAL 1 YEAR)"
 );
 
 if ($birthday_stmt) {
