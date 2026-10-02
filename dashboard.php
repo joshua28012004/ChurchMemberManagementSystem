@@ -38,41 +38,39 @@ if (!isset($_SESSION['admin'])) {
 include 'includes/db.php';
 
 
+$dashboard_errors = [];
+
 /* =====================================================
    TOTAL MEMBERS
 ===================================================== */
+
+$totalMembers = ['total' => 0];
 
 $stmt = mysqli_prepare(
     $conn,
     "SELECT COUNT(*) AS total FROM members"
 );
 
-if (!$stmt) {
-
-    die("Unable to load dashboard data.");
-
-}
-
-mysqli_stmt_execute($stmt);
-
-$result = mysqli_stmt_get_result($stmt);
-
-if (!$result) {
-
+if ($stmt) {
+    if (mysqli_stmt_execute($stmt)) {
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            $totalMembers = $row;
+        }
+    } else {
+        $dashboard_errors[] = "members";
+    }
     mysqli_stmt_close($stmt);
-
-    die("Unable to load dashboard data.");
-
+} else {
+    $dashboard_errors[] = "members";
 }
-
-$totalMembers = mysqli_fetch_assoc($result);
-
-mysqli_stmt_close($stmt);
 
 
 /* =====================================================
    TOTAL DONATIONS
 ===================================================== */
+
+$totalDonations = ['total' => 0];
 
 $stmt = mysqli_prepare(
     $conn,
@@ -80,27 +78,19 @@ $stmt = mysqli_prepare(
      FROM donations"
 );
 
-if (!$stmt) {
-
-    die("Unable to load dashboard data.");
-
-}
-
-mysqli_stmt_execute($stmt);
-
-$result = mysqli_stmt_get_result($stmt);
-
-if (!$result) {
-
+if ($stmt) {
+    if (mysqli_stmt_execute($stmt)) {
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            $totalDonations = $row;
+        }
+    } else {
+        $dashboard_errors[] = "donations";
+    }
     mysqli_stmt_close($stmt);
-
-    die("Unable to load dashboard data.");
-
+} else {
+    $dashboard_errors[] = "donations";
 }
-
-$totalDonations = mysqli_fetch_assoc($result);
-
-mysqli_stmt_close($stmt);
 
 
 /* =====================================================
@@ -108,47 +98,42 @@ mysqli_stmt_close($stmt);
 ===================================================== */
 
 $today = date("m-d");
-
+$todayBirthdays = ['total' => 0];
 
 $stmt = mysqli_prepare(
     $conn,
     "SELECT COUNT(*) AS total
      FROM members
-     WHERE DATE_FORMAT(dob, '%m-%d') = ?"
+     WHERE dob IS NOT NULL
+       AND dob != ''
+       AND DATE_FORMAT(dob, '%m-%d') = ?"
 );
 
-if (!$stmt) {
-
-    die("Unable to load dashboard data.");
-
-}
-
-mysqli_stmt_bind_param(
-    $stmt,
-    "s",
-    $today
-);
-
-mysqli_stmt_execute($stmt);
-
-$result = mysqli_stmt_get_result($stmt);
-
-if (!$result) {
-
+if ($stmt) {
+    mysqli_stmt_bind_param(
+        $stmt,
+        "s",
+        $today
+    );
+    if (mysqli_stmt_execute($stmt)) {
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            $todayBirthdays = $row;
+        }
+    } else {
+        $dashboard_errors[] = "birthdays";
+    }
     mysqli_stmt_close($stmt);
-
-    die("Unable to load dashboard data.");
-
+} else {
+    $dashboard_errors[] = "birthdays";
 }
-
-$todayBirthdays = mysqli_fetch_assoc($result);
-
-mysqli_stmt_close($stmt);
 
 
 /* =====================================================
    UPCOMING EVENTS COUNT
 ===================================================== */
+
+$upcomingEvents = ['total' => 0];
 
 $stmt = mysqli_prepare(
     $conn,
@@ -157,32 +142,26 @@ $stmt = mysqli_prepare(
      WHERE event_date >= CURDATE()"
 );
 
-if (!$stmt) {
-
-    die("Unable to load dashboard data.");
-
-}
-
-mysqli_stmt_execute($stmt);
-
-$result = mysqli_stmt_get_result($stmt);
-
-if (!$result) {
-
+if ($stmt) {
+    if (mysqli_stmt_execute($stmt)) {
+        $result = mysqli_stmt_get_result($stmt);
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            $upcomingEvents = $row;
+        }
+    } else {
+        $dashboard_errors[] = "events";
+    }
     mysqli_stmt_close($stmt);
-
-    die("Unable to load dashboard data.");
-
+} else {
+    $dashboard_errors[] = "events";
 }
-
-$upcomingEvents = mysqli_fetch_assoc($result);
-
-mysqli_stmt_close($stmt);
 
 
 /* =====================================================
    UPCOMING EVENTS LIST
 ===================================================== */
+
+$upcoming_events = false;
 
 $stmt = mysqli_prepare(
     $conn,
@@ -198,22 +177,15 @@ $stmt = mysqli_prepare(
      LIMIT 5"
 );
 
-if (!$stmt) {
-
-    die("Unable to load dashboard data.");
-
-}
-
-mysqli_stmt_execute($stmt);
-
-$upcoming_events = mysqli_stmt_get_result($stmt);
-
-if (!$upcoming_events) {
-
+if ($stmt) {
+    if (mysqli_stmt_execute($stmt)) {
+        $upcoming_events = mysqli_stmt_get_result($stmt);
+    } else {
+        $dashboard_errors[] = "upcoming_events";
+    }
     mysqli_stmt_close($stmt);
-
-    die("Unable to load dashboard data.");
-
+} else {
+    $dashboard_errors[] = "upcoming_events";
 }
 
 
@@ -247,8 +219,15 @@ echo htmlspecialchars(
 
 </h2>
 
-
 <hr>
+
+<?php if (!empty($dashboard_errors)): ?>
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    Some dashboard metrics could not be loaded. Please refresh the page.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
 
 
 <!-- ===============================
@@ -338,7 +317,7 @@ Total Donations
 <div class="col-md-3">
 
 <a
-href="members/birthday_reminders.php"
+href="birthdays/view_birthdays.php"
 class="text-decoration-none">
 
 <div class="card bg-warning text-dark p-3 h-100">
@@ -541,7 +520,7 @@ Add Event
 <div class="col-md-3">
 
 <a
-href="members/birthday_reminders.php"
+href="birthdays/view_birthdays.php"
 class="btn btn-danger w-100 p-3">
 
 🎂
@@ -623,13 +602,15 @@ View Reports
 <div class="card shadow mt-4">
 
 
-<div class="card-header bg-primary text-white">
+<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
 
 <h4 class="mb-0">
 
 📅 Upcoming Events
 
 </h4>
+
+<a href="events/view_events.php" class="btn btn-light btn-sm">View All Events &rarr;</a>
 
 </div>
 
@@ -639,7 +620,7 @@ View Reports
 
 <?php
 
-if (mysqli_num_rows($upcoming_events) > 0) {
+if ($upcoming_events && mysqli_num_rows($upcoming_events) > 0) {
 
 ?>
 

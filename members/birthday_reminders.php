@@ -28,6 +28,13 @@ if (!isset($_SESSION['admin'])) {
 
 }
 
+/* =====================================================
+   CANONICAL BIRTHDAY PAGE REDIRECT
+===================================================== */
+
+header("Location: ../birthdays/view_birthdays.php");
+exit();
+
 
 /* =====================================================
    DATABASE

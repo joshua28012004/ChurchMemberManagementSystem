@@ -23,6 +23,15 @@ session_set_cookie_params([
 
 session_start();
 
+/* =====================================================
+   ALREADY AUTHENTICATED REDIRECT
+===================================================== */
+
+if (isset($_SESSION['admin'])) {
+    header("Location: dashboard.php");
+    exit();
+}
+
 
 /* =====================================================
    SECURITY HEADERS

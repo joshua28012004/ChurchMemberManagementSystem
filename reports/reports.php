@@ -772,7 +772,7 @@ if ($recent_stmt) {
         </div>
 
         <a
-            href="../members/birthday_reminders.php"
+            href="../birthdays/view_birthdays.php"
             class="btn btn-primary no-print"
         >
             View Birthday Reminders
@@ -1151,7 +1151,7 @@ if ($recent_stmt) {
             </a>
 
             <a
-                href="../members/birthday_reminders.php"
+                href="../birthdays/view_birthdays.php"
                 class="btn btn-outline-danger"
             >
                 🎂 Birthdays
