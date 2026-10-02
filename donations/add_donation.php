@@ -753,6 +753,8 @@ if (isset($_POST['save'])) {
    GET MEMBERS
 ===================================================== */
 
+$members_result = false;
+
 $members_stmt = mysqli_prepare(
     $conn,
     "SELECT id, member_id, fullname
@@ -761,39 +763,25 @@ $members_stmt = mysqli_prepare(
 );
 
 
-if (!$members_stmt) {
+if ($members_stmt) {
 
-    die(
-        "Unable to load the donation form."
-    );
+    if (mysqli_stmt_execute($members_stmt)) {
 
-}
+        $members_result =
+            mysqli_stmt_get_result(
+                $members_stmt
+            );
 
-
-if (!mysqli_stmt_execute($members_stmt)) {
-
-    mysqli_stmt_close($members_stmt);
-
-    die(
-        "Unable to load the donation form."
-    );
+    }
 
 }
 
+if (!$members_result && $message === "") {
 
-$members_result =
-    mysqli_stmt_get_result(
-        $members_stmt
-    );
+    $message =
+        "Unable to load members list. Please refresh the page.";
 
-
-if (!$members_result) {
-
-    mysqli_stmt_close($members_stmt);
-
-    die(
-        "Unable to load the donation form."
-    );
+    $message_type = "warning";
 
 }
 
@@ -995,12 +983,14 @@ Select Member
 
 <?php
 
-while (
-    $row =
-    mysqli_fetch_assoc(
-        $members_result
-    )
-) {
+if ($members_result) {
+
+    while (
+        $row =
+        mysqli_fetch_assoc(
+            $members_result
+        )
+    ) {
 
 ?>
 
@@ -1047,6 +1037,8 @@ echo htmlspecialchars(
 
 
 <?php
+
+    }
 
 }
 
@@ -1401,6 +1393,8 @@ window.addEventListener(
    CLOSE MEMBERS STATEMENT
 ===================================================== */
 
-mysqli_stmt_close($members_stmt);
+if ($members_stmt) {
+    mysqli_stmt_close($members_stmt);
+}
 
 ?>

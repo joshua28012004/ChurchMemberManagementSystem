@@ -76,6 +76,9 @@ if (isset($_GET['search'])) {
    GET DONATIONS
 ===================================================== */
 
+$donations_list = [];
+$total_amount = 0.0;
+
 if ($search !== "") {
 
     $search_value = "%" . $search . "%";
@@ -83,13 +86,15 @@ if ($search !== "") {
 
     $stmt = mysqli_prepare(
         $conn,
-        "SELECT *
-         FROM donations
-         WHERE donation_id LIKE ?
-            OR donor_name LIKE ?
-            OR donation_type LIKE ?
-            OR donation_date LIKE ?
-         ORDER BY id DESC"
+        "SELECT d.*, m.member_id AS member_code
+         FROM donations d
+         LEFT JOIN members m ON d.member_id = m.id
+         WHERE d.donation_id LIKE ?
+            OR d.donor_name LIKE ?
+            OR d.donation_type LIKE ?
+            OR d.donation_date LIKE ?
+            OR m.member_id LIKE ?
+         ORDER BY d.id DESC"
     );
 
 
@@ -103,7 +108,8 @@ if ($search !== "") {
 
     mysqli_stmt_bind_param(
         $stmt,
-        "ssss",
+        "sssss",
+        $search_value,
         $search_value,
         $search_value,
         $search_value,
@@ -133,14 +139,22 @@ if ($search !== "") {
 
     }
 
+    while ($r = mysqli_fetch_assoc($result)) {
+        $donations_list[] = $r;
+        $total_amount += (float)$r['amount'];
+    }
+
+    mysqli_stmt_close($stmt);
+
 } else {
 
 
     $stmt = mysqli_prepare(
         $conn,
-        "SELECT *
-         FROM donations
-         ORDER BY id DESC"
+        "SELECT d.*, m.member_id AS member_code
+         FROM donations d
+         LEFT JOIN members m ON d.member_id = m.id
+         ORDER BY d.id DESC"
     );
 
 
@@ -173,6 +187,13 @@ if ($search !== "") {
         exit();
 
     }
+
+    while ($r = mysqli_fetch_assoc($result)) {
+        $donations_list[] = $r;
+        $total_amount += (float)$r['amount'];
+    }
+
+    mysqli_stmt_close($stmt);
 
 }
 
@@ -533,7 +554,7 @@ class="mb-4">
 type="text"
 name="search"
 class="form-control"
-placeholder="Search Donation ID, Donor, Type or Date"
+placeholder="Search Donation ID, Member Code, Donor, Type or Date"
 value="<?php
 echo htmlspecialchars(
     $search,
@@ -592,6 +613,41 @@ class="btn btn-success w-100">
 
 
 <!-- =====================================================
+     SUMMARY TOTALS
+===================================================== -->
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+<div>
+
+<span class="badge bg-success fs-6 px-3 py-2">
+
+<i class="bi bi-cash me-1"></i> Total: ₹<?php echo number_format($total_amount, 2); ?>
+
+</span>
+
+<span class="badge bg-secondary fs-6 px-3 py-2 ms-1">
+
+<i class="bi bi-list-ol me-1"></i> Records: <?php echo count($donations_list); ?>
+
+</span>
+
+</div>
+
+<?php if ($search !== ""): ?>
+
+<div>
+
+<small class="text-muted">Showing results for "<strong><?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?></strong>"</small>
+
+</div>
+
+<?php endif; ?>
+
+</div>
+
+
+<!-- =====================================================
      DONATION TABLE
 ===================================================== -->
 
@@ -610,6 +666,8 @@ class="table table-bordered table-striped table-hover">
 <th>ID</th>
 
 <th>Donation ID</th>
+
+<th>Member Code</th>
 
 <th>Donor</th>
 
@@ -636,12 +694,10 @@ class="table table-bordered table-striped table-hover">
 
 <?php
 
-if (mysqli_num_rows($result) > 0) {
+if (count($donations_list) > 0) {
 
 
-    while (
-        $row = mysqli_fetch_assoc($result)
-    ) {
+    foreach ($donations_list as $row) {
 
 ?>
 
@@ -677,6 +733,27 @@ echo htmlspecialchars(
     ENT_QUOTES,
     'UTF-8'
 );
+
+?>
+
+</td>
+
+
+<!-- MEMBER CODE -->
+
+<td>
+
+<?php
+
+if (!empty($row['member_code'])) {
+
+    echo '<span class="badge bg-primary">' . htmlspecialchars((string)$row['member_code'], ENT_QUOTES, 'UTF-8') . '</span>';
+
+} else {
+
+    echo '<span class="text-muted">—</span>';
+
+}
 
 ?>
 
@@ -850,7 +927,7 @@ Receipt
 <tr>
 
 <td
-colspan="9"
+colspan="10"
 class="text-center text-danger py-4">
 
 
@@ -879,6 +956,21 @@ No Donations Found
 
 
 </tbody>
+
+
+<tfoot>
+
+<tr class="table-light fw-bold">
+
+<td colspan="5" class="text-end">Total Amount:</td>
+
+<td>₹<?php echo number_format($total_amount, 2); ?></td>
+
+<td colspan="4"></td>
+
+</tr>
+
+</tfoot>
 
 
 </table>

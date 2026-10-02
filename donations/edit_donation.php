@@ -177,6 +177,42 @@ mysqli_stmt_close($select_stmt);
 
 
 /* =====================================================
+   GET MEMBERS LIST
+===================================================== */
+
+$members_list = [];
+
+$members_stmt = mysqli_prepare(
+    $conn,
+    "SELECT id, member_id, fullname
+     FROM members
+     ORDER BY fullname ASC"
+);
+
+if ($members_stmt) {
+
+    if (mysqli_stmt_execute($members_stmt)) {
+
+        $members_res = mysqli_stmt_get_result($members_stmt);
+
+        if ($members_res) {
+
+            while ($m_item = mysqli_fetch_assoc($members_res)) {
+
+                $members_list[] = $m_item;
+
+            }
+
+        }
+
+    }
+
+    mysqli_stmt_close($members_stmt);
+
+}
+
+
+/* =====================================================
    UPDATE DONATION
 ===================================================== */
 
@@ -213,6 +249,14 @@ if (isset($_POST['update'])) {
         /* =============================================
            GET FORM DATA
         ============================================= */
+
+        $member_id =
+            trim(
+                (string)(
+                    $_POST['member_id'] ?? ""
+                )
+            );
+
 
         $donor_name =
             trim(
@@ -271,10 +315,28 @@ if (isset($_POST['update'])) {
 
 
         /* =============================================
+           VALIDATE MEMBER
+        ============================================= */
+
+        if (
+            $member_id === "" ||
+            !ctype_digit($member_id) ||
+            (int)$member_id <= 0
+        ) {
+
+            $message =
+                "Please select a valid member.";
+
+            $message_type = "danger";
+
+        }
+
+
+        /* =============================================
            VALIDATE DONOR NAME
         ============================================= */
 
-        if ($donor_name === "") {
+        elseif ($donor_name === "") {
 
             $message =
                 "Donor name is required.";
@@ -466,105 +528,185 @@ if (isset($_POST['update'])) {
 
             else {
 
-
                 /* =====================================
-                   CONVERT AMOUNT
+                   VERIFY MEMBER EXISTS
                 ===================================== */
 
-                $amount =
-                    (float)$amount_input;
+                $member_id_int = (int)$member_id;
 
-
-                /* =====================================
-                   UPDATE DATABASE
-                ===================================== */
-
-                $update_stmt = mysqli_prepare(
+                $member_stmt = mysqli_prepare(
                     $conn,
-                    "UPDATE donations
-                     SET
-                        donor_name = ?,
-                        donation_type = ?,
-                        amount = ?,
-                        payment_method = ?,
-                        donation_date = ?,
-                        purpose = ?,
-                        remarks = ?
-                     WHERE id = ?"
+                    "SELECT id, fullname
+                     FROM members
+                     WHERE id = ?
+                     LIMIT 1"
                 );
 
-
-                if (!$update_stmt) {
+                if (!$member_stmt) {
 
                     $message =
-                        "Unable to update the donation.";
+                        "Unable to verify the selected member.";
 
                     $message_type = "danger";
 
                 }
 
-
                 else {
 
-
                     mysqli_stmt_bind_param(
-                        $update_stmt,
-                        "ssdssssi",
-                        $donor_name,
-                        $donation_type,
-                        $amount,
-                        $payment_method,
-                        $donation_date,
-                        $purpose,
-                        $remarks,
-                        $id
+                        $member_stmt,
+                        "i",
+                        $member_id_int
                     );
 
+                    if (!mysqli_stmt_execute($member_stmt)) {
 
-                    if (
-                        mysqli_stmt_execute(
-                            $update_stmt
-                        )
-                    ) {
+                        mysqli_stmt_close($member_stmt);
 
+                        $message =
+                            "Unable to verify the selected member.";
 
-                        mysqli_stmt_close(
-                            $update_stmt
-                        );
-
-
-                        /* =============================
-                           REGENERATE CSRF TOKEN
-                        ============================= */
-
-                        $_SESSION['csrf_token'] =
-                            bin2hex(
-                                random_bytes(32)
-                            );
-
-
-                        header(
-                            "Location: view_donations.php?msg=updated"
-                        );
-
-                        exit();
+                        $message_type = "danger";
 
                     }
 
-
                     else {
 
+                        $member_result =
+                            mysqli_stmt_get_result($member_stmt);
 
-                        $message =
-                            "Unable to update the donation. Please try again.";
+                        if (
+                            !$member_result ||
+                            mysqli_num_rows($member_result) === 0
+                        ) {
 
-                        $message_type =
-                            "danger";
+                            mysqli_stmt_close($member_stmt);
+
+                            $message =
+                                "Selected member does not exist.";
+
+                            $message_type = "danger";
+
+                        }
+
+                        else {
+
+                            $member_info =
+                                mysqli_fetch_assoc($member_result);
+
+                            mysqli_stmt_close($member_stmt);
+
+                            if ($donor_name === "") {
+                                $donor_name =
+                                    trim($member_info['fullname'] ?? "");
+                            }
+
+                            /* =====================================
+                               CONVERT AMOUNT
+                            ===================================== */
+
+                            $amount =
+                                (float)$amount_input;
 
 
-                        mysqli_stmt_close(
-                            $update_stmt
-                        );
+                            /* =====================================
+                               UPDATE DATABASE
+                            ===================================== */
+
+                            $update_stmt = mysqli_prepare(
+                                $conn,
+                                "UPDATE donations
+                                 SET
+                                    member_id = ?,
+                                    donor_name = ?,
+                                    donation_type = ?,
+                                    amount = ?,
+                                    payment_method = ?,
+                                    donation_date = ?,
+                                    purpose = ?,
+                                    remarks = ?
+                                 WHERE id = ?"
+                            );
+
+
+                            if (!$update_stmt) {
+
+                                $message =
+                                    "Unable to update the donation.";
+
+                                $message_type = "danger";
+
+                            }
+
+
+                            else {
+
+
+                                mysqli_stmt_bind_param(
+                                    $update_stmt,
+                                    "issdssssi",
+                                    $member_id_int,
+                                    $donor_name,
+                                    $donation_type,
+                                    $amount,
+                                    $payment_method,
+                                    $donation_date,
+                                    $purpose,
+                                    $remarks,
+                                    $id
+                                );
+
+
+                                if (
+                                    mysqli_stmt_execute(
+                                        $update_stmt
+                                    )
+                                ) {
+
+
+                                    mysqli_stmt_close(
+                                        $update_stmt
+                                    );
+
+
+                                    /* =============================
+                                       REGENERATE CSRF TOKEN
+                                    ============================= */
+
+                                    $_SESSION['csrf_token'] =
+                                        bin2hex(
+                                            random_bytes(32)
+                                        );
+
+
+                                    header(
+                                        "Location: view_donations.php?msg=updated"
+                                    );
+
+                                    exit();
+
+                                }
+
+
+                                else {
+
+
+                                    $message =
+                                        "Unable to update the donation. Please try again.";
+
+                                    $message_type =
+                                        "danger";
+
+
+                                    mysqli_stmt_close(
+                                        $update_stmt
+                                    );
+
+                                }
+
+                            }
+
+                        }
 
                     }
 
@@ -761,6 +903,92 @@ readonly>
 
 
 <!-- =================================================
+     SELECT MEMBER
+================================================= -->
+
+<div class="col-md-6 mb-3">
+
+<label class="form-label">
+
+Select Member
+
+</label>
+
+<select
+name="member_id"
+id="member"
+class="form-control"
+required>
+
+<option value="">
+
+Select Member
+
+</option>
+
+<?php
+
+foreach ($members_list as $m) {
+
+?>
+
+<option
+value="<?php
+echo htmlspecialchars(
+    $m['id'],
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>"
+data-name="<?php
+echo htmlspecialchars(
+    $m['fullname'],
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>"
+<?php
+if ((int)($row['member_id'] ?? 0) === (int)$m['id']) {
+    echo "selected";
+}
+?>>
+
+<?php
+
+echo htmlspecialchars(
+    $m['member_id'],
+    ENT_QUOTES,
+    'UTF-8'
+);
+
+?>
+
+ - 
+
+<?php
+
+echo htmlspecialchars(
+    $m['fullname'],
+    ENT_QUOTES,
+    'UTF-8'
+);
+
+?>
+
+</option>
+
+<?php
+
+}
+
+?>
+
+</select>
+
+</div>
+
+
+<!-- =================================================
      DONOR NAME
 ================================================= -->
 
@@ -775,6 +1003,7 @@ Donor Name
 <input
 type="text"
 name="donor_name"
+id="donor_name"
 class="form-control"
 value="<?php
 echo htmlspecialchars(
@@ -1133,6 +1362,21 @@ class="btn btn-primary">
 </div>
 
 </div>
+
+
+<script>
+var memberSelect = document.getElementById("member");
+if (memberSelect) {
+    memberSelect.addEventListener("change", function() {
+        var selectedOption = this.options[this.selectedIndex];
+        var donorName = selectedOption.getAttribute("data-name");
+        var donorInput = document.getElementById("donor_name");
+        if (donorInput && donorName) {
+            donorInput.value = donorName;
+        }
+    });
+}
+</script>
 
 
 <!-- =====================================================
