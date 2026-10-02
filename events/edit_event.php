@@ -379,6 +379,40 @@ if (isset($_POST['update'])) {
 
 
         /* =================================================
+           CHECK DUPLICATE EVENT ID (EXCLUDING CURRENT)
+        ================================================= */
+
+        if ($message === "") {
+
+            $check_stmt = mysqli_prepare(
+                $conn,
+                "SELECT id FROM events WHERE event_id = ? AND id != ? LIMIT 1"
+            );
+
+            if ($check_stmt) {
+
+                mysqli_stmt_bind_param($check_stmt, "si", $event_id, $id);
+
+                if (mysqli_stmt_execute($check_stmt)) {
+
+                    $check_res = mysqli_stmt_get_result($check_stmt);
+
+                    if ($check_res && mysqli_num_rows($check_res) > 0) {
+
+                        $message = "An event with this Event ID already exists. Please choose a unique Event ID.";
+
+                    }
+
+                }
+
+                mysqli_stmt_close($check_stmt);
+
+            }
+
+        }
+
+
+        /* =================================================
            UPDATE DATABASE
         ================================================= */
 
@@ -437,15 +471,7 @@ if (isset($_POST['update'])) {
                         bin2hex(random_bytes(32));
 
 
-                    echo "<script>
-
-                        alert('Event Updated Successfully!');
-
-                        window.location.href =
-                            'view_events.php?msg=updated';
-
-                    </script>";
-
+                    header("Location: view_events.php?msg=updated");
                     exit();
 
                 } else {

@@ -254,6 +254,41 @@ if (isset($_POST['save'])) {
 
 
         /* =================================================
+           CHECK DUPLICATE EVENT ID
+        ================================================= */
+
+        if ($message === "") {
+
+            $check_stmt = mysqli_prepare(
+                $conn,
+                "SELECT id FROM events WHERE event_id = ? LIMIT 1"
+            );
+
+            if ($check_stmt) {
+
+                mysqli_stmt_bind_param($check_stmt, "s", $event_id);
+
+                if (mysqli_stmt_execute($check_stmt)) {
+
+                    $check_res = mysqli_stmt_get_result($check_stmt);
+
+                    if ($check_res && mysqli_num_rows($check_res) > 0) {
+
+                        $message = "An event with this Event ID already exists. Please choose a unique Event ID.";
+                        $message_type = "danger";
+
+                    }
+
+                }
+
+                mysqli_stmt_close($check_stmt);
+
+            }
+
+        }
+
+
+        /* =================================================
            DATABASE INSERT
         ================================================= */
 
@@ -311,11 +346,7 @@ if (isset($_POST['save'])) {
                         bin2hex(random_bytes(32));
 
 
-                    echo "<script>
-                            alert('Event Added Successfully!');
-                            window.location.href = 'view_events.php';
-                          </script>";
-
+                    header("Location: view_events.php?msg=added");
                     exit();
 
                 } else {

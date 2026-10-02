@@ -115,6 +115,18 @@ if (isset($_GET['msg'])) {
 
 
 /* =====================================================
+   FILTER (ALL / UPCOMING / PAST)
+===================================================== */
+
+$filter = "all";
+if (isset($_GET['filter']) && is_string($_GET['filter'])) {
+    if (in_array($_GET['filter'], ["upcoming", "past"], true)) {
+        $filter = $_GET['filter'];
+    }
+}
+
+
+/* =====================================================
    SEARCH
 ===================================================== */
 
@@ -131,76 +143,57 @@ if (isset($_GET['search']) && is_string($_GET['search'])) {
    GET EVENTS
 ===================================================== */
 
+$conditions = [];
+$params = [];
+$types = "";
+
+if ($filter === "upcoming") {
+    $conditions[] = "event_date >= CURDATE()";
+} elseif ($filter === "past") {
+    $conditions[] = "event_date < CURDATE()";
+}
+
 if ($search !== "") {
-
     $search_value = "%" . $search . "%";
+    $conditions[] = "(event_id LIKE ? OR event_name LIKE ? OR event_type LIKE ? OR venue LIKE ? OR organizer LIKE ?)";
+    $params = [$search_value, $search_value, $search_value, $search_value, $search_value];
+    $types = "sssss";
+}
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT *
-         FROM events
-         WHERE event_id LIKE ?
-            OR event_name LIKE ?
-            OR event_type LIKE ?
-            OR venue LIKE ?
-            OR organizer LIKE ?
-         ORDER BY event_date ASC, event_time ASC"
-    );
+$sql = "SELECT * FROM events";
+if (!empty($conditions)) {
+    $sql .= " WHERE " . implode(" AND ", $conditions);
+}
 
-    if (!$stmt) {
+if ($filter === "past") {
+    $sql .= " ORDER BY event_date DESC, event_time DESC";
+} else {
+    $sql .= " ORDER BY event_date ASC, event_time ASC";
+}
 
-        $result = false;
+$stmt = mysqli_prepare($conn, $sql);
 
-    } else {
+if (!$stmt) {
 
-        mysqli_stmt_bind_param(
-            $stmt,
-            "sssss",
-            $search_value,
-            $search_value,
-            $search_value,
-            $search_value,
-            $search_value
-        );
-
-        if (!mysqli_stmt_execute($stmt)) {
-
-            $result = false;
-
-        } else {
-
-            $result = mysqli_stmt_get_result($stmt);
-
-        }
-
-    }
+    $result = false;
 
 } else {
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT *
-         FROM events
-         ORDER BY event_date ASC, event_time ASC"
-    );
+    if (!empty($params)) {
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+    }
 
-    if (!$stmt) {
+    if (!mysqli_stmt_execute($stmt)) {
 
         $result = false;
 
     } else {
 
-        if (!mysqli_stmt_execute($stmt)) {
-
-            $result = false;
-
-        } else {
-
-            $result = mysqli_stmt_get_result($stmt);
-
-        }
+        $result = mysqli_stmt_get_result($stmt);
 
     }
+
+    mysqli_stmt_close($stmt);
 
 }
 
@@ -434,6 +427,8 @@ data-bs-dismiss="alert">
 
 <form method="GET">
 
+<input type="hidden" name="filter" value="<?php echo htmlspecialchars($filter, ENT_QUOTES, 'UTF-8'); ?>">
+
 <div class="row g-2">
 
 
@@ -471,8 +466,9 @@ class="btn btn-primary w-100">
 <div class="col-md-1">
 
 <a
-href="view_events.php"
-class="btn btn-secondary w-100">
+href="view_events.php<?php echo $filter !== 'all' ? '?filter=' . urlencode($filter) : ''; ?>"
+class="btn btn-secondary w-100"
+title="Clear search">
 
 ✖
 
@@ -499,6 +495,46 @@ class="btn btn-success w-100">
 </div>
 
 </form>
+
+</div>
+
+
+<!-- =====================================================
+     FILTER BUTTONS (ALL / UPCOMING / PAST)
+===================================================== -->
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+<div class="btn-group" role="group">
+
+<a href="view_events.php?filter=all<?php echo $search !== '' ? '&search=' . urlencode($search) : ''; ?>" 
+   class="btn btn-sm <?php echo $filter === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+   All Events
+</a>
+
+<a href="view_events.php?filter=upcoming<?php echo $search !== '' ? '&search=' . urlencode($search) : ''; ?>" 
+   class="btn btn-sm <?php echo $filter === 'upcoming' ? 'btn-success' : 'btn-outline-success'; ?>">
+   📅 Upcoming Events
+</a>
+
+<a href="view_events.php?filter=past<?php echo $search !== '' ? '&search=' . urlencode($search) : ''; ?>" 
+   class="btn btn-sm <?php echo $filter === 'past' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">
+   ⏳ Past Events
+</a>
+
+</div>
+
+<?php if ($filter !== 'all' || $search !== ''): ?>
+
+<div>
+
+<a href="view_events.php" class="btn btn-sm btn-outline-dark">
+   ✖ Reset Filters
+</a>
+
+</div>
+
+<?php endif; ?>
 
 </div>
 
