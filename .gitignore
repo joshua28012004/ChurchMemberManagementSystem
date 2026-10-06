@@ -28,3 +28,5 @@ desktop.ini
 database/church.sql
 
 includes/db_config.php
+
+database/backup_*.sql
